@@ -22,15 +22,18 @@ public class Juego extends Canvas implements Runnable {
 	private static final int ANCHO_VENTANA = 1920, ALTO_VENTANA = 1080;
 	private static final String NOMBRE_VENTANA = "Ace Attorney: Galactic intermission";
 	private static int aps = 0, fps = 0;
-	private static final Font FONT = new Font("Arial", Font.BOLD, 35);
-
 	private static JFrame ventana;
 	private static volatile boolean enFuncionamiento = false; // juego ejecutandose (volatile hace que no se pueda usar
 																// en dos funciones a la vez)
 
-	private static EstadoJuego Estadoactual = EstadoJuego.MenuPrincipal;
-
 	private static Thread thread; // proceso pa los graficos
+
+	private Selector selector; // selector menu
+	private OpcionMenu[] opcionesMenu;
+	private int opcionActual;
+	private static final Font FONT = new Font("Arial", Font.BOLD, 35);
+
+	private static EstadoJuego Estadoactual = EstadoJuego.MenuPrincipal;
 
 	private static Teclado teclado; // clase teclado en control
 
@@ -48,6 +51,13 @@ public class Juego extends Canvas implements Runnable {
 		ventana.pack(); // hace que no se raye el tamaño
 		ventana.setLocationRelativeTo(null);
 		ventana.setVisible(true); // visible
+
+		opcionesMenu = new OpcionMenu[4];
+		opcionesMenu[0] = new OpcionMenu("Juego Nuevo");
+		opcionesMenu[1] = new OpcionMenu("Continuar");
+		opcionesMenu[2] = new OpcionMenu("Opciones");
+		opcionesMenu[3] = new OpcionMenu("Salir");
+
 	}
 
 	public static void main(String[] args) {
@@ -73,15 +83,19 @@ public class Juego extends Canvas implements Runnable {
 		}
 	}
 
+	private void inicializarSelector() { //ESTO SIRVE PARA TODO SI HOMBRE
+		selector = new Selector(opcionesMenu);
+	}
+
 	private void actualizar() {// actualiza graficos y de mas
 		teclado.actualizar(); // detecta teclado
-
+		inicializarSelector();
 		if (Estadoactual == EstadoJuego.MenuPrincipal) {
 			mostrarMenu(getGraphics());
 		}
 
 		if (teclado.w) {
-			System.out.println("w");
+			selector.seleccionarAnterior();
 		}
 
 		if (teclado.a) {
@@ -111,12 +125,9 @@ public class Juego extends Canvas implements Runnable {
 	}
 
 	private void mostrarMenu(Graphics g) {
+		// PARTE TITULO
 		String titulo = "ACE ATTORNEY: ";
 		String titulo2 = "GALACTIC INTERMISSION";
-		String opcion1 = "Juego Nuevo";
-		String opcion2 = "Continuar";
-		String opcion3 = "Opciones";
-		String opcion4 = "Salir";
 
 		FontMetrics fm = g.getFontMetrics(FONT);
 		int x = (getWidth() - fm.stringWidth(titulo)) / 2;
@@ -127,24 +138,24 @@ public class Juego extends Canvas implements Runnable {
 		g.setColor(Color.MAGENTA);
 		g.setFont(FUENTETITULO);
 		g.drawString(titulo, x - 500, y);
-		y+=75;
+		y += 75;
 		g.drawString(titulo2, x - 500, y);
-		
-		
-		
-		g.setColor(Color.BLACK);
+
+		// PARTE OPCIONES
 		g.setFont(FONT);
 		y += 250;
-		g.drawString(opcion1, x, y);
+		for (int i = 0; i < opcionesMenu.length; i++) {
+			OpcionMenu opcion = opcionesMenu[i];
+			int posY = y + (i + 1) * 35; // Ajuste: utilizar 35 en lugar de 30
 
-		y += 35;
-		g.drawString(opcion2, x, y);
+			if (opcion.estaSeleccionada()) {
+				g.setColor(Color.RED); // Resaltar la opción seleccionada con color rojo
+			} else {
+				g.setColor(Color.BLACK);
+			}
 
-		y += 35;
-		g.drawString(opcion3, x, y);
-
-		y += 35;
-		g.drawString(opcion4, x, y);
+			g.drawString(opcion.getTexto(), x, posY);
+		}
 	}
 
 	@Override
@@ -191,7 +202,7 @@ public class Juego extends Canvas implements Runnable {
 		int x = 0; // Coordenada x del área del menú
 		int y = 100; // Coordenada y del área del menú
 		int width = getWidth(); // Ancho del área del menú (ancho de la ventana)
-		int height = y + 250 + 35*3; // Alto del área del menú (incluye las cuatro opciones)
+		int height = y + 250 + 35 * 3; // Alto del área del menú (incluye las cuatro opciones)
 
 		// Utiliza el método clearRect() para limpiar el área del menú con el color de
 		// fondo
@@ -205,20 +216,16 @@ public class Juego extends Canvas implements Runnable {
 		// como cambiar el estado del juego o reiniciar variables según tus necesidades.
 	}
 
-	public void keyPressed(KeyEvent e) {
+	public void keyPressed(KeyEvent e) { // queda por poner las teclas para el selector. q coño hace keypressed?
 		if (Estadoactual == EstadoJuego.MenuPrincipal) {
 			if (e.getKeyCode() == KeyEvent.VK_1) {
-				// Opción 1: Juego Nuevo
-				iniciarNuevoJuego();
+				selector.seleccionarOpcionActual();
 			} else if (e.getKeyCode() == KeyEvent.VK_2) {
-				// Opción 2: Continuar
-				continuarJuego();
+				selector.seleccionarSiguiente();
 			} else if (e.getKeyCode() == KeyEvent.VK_3) {
-				// Opción 3: Opciones
-				mostrarOpciones();
+				selector.seleccionarAnterior();
 			} else if (e.getKeyCode() == KeyEvent.VK_4) {
-				// Opción 4: Salir
-				detener();
+				selector.deseleccionarOpcionActual();
 			}
 		} else if (Estadoactual == EstadoJuego.Jugando) {
 			// Manejar eventos de teclado en el juego
